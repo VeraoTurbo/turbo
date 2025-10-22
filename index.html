@@ -1,425 +1,818 @@
-<!DOCTYPE html>
-<html lang="pt-BR" class="scroll-smooth">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Verão Turbo – O Verão que Você Sempre Quis, Agora!</title>
-    
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Google Fonts: Oswald (Títulos) & Inter (Corpo) -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Oswald:wght@700&display=swap" rel="stylesheet">
-    
-    <style>
-        /* Aplicando as fontes personalizadas via Tailwind config */
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #1a1a1a;
-            color: #FFFFFF;
-        }
-        h1, h2, h3, h4, h5, h6 {
-            font-family: 'Oswald', sans-serif;
-        }
-        .hero-bg {
-            background-image: url('https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?q=80&w=2070&auto=format&fit=crop');
-            background-size: cover;
-            background-position: center;
-        }
-        .gradient-card {
-            background-image: linear-gradient(to right, #FFD700, #FFA500);
-        }
-        .faq-item .answer {
-            display: none;
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.5s ease-in-out;
-        }
-        .faq-item.open .answer {
-            display: block;
-            max-height: 200px; /* Ajuste conforme necessário */
-        }
-        .faq-item.open .icon-plus {
-            display: none;
-        }
-        .faq-item .icon-minus {
-            display: none;
-        }
-        .faq-item.open .icon-minus {
-            display: block;
-        }
-    </style>
-</head>
-<body class="bg-white text-gray-900">
+'use client'
 
-    <!-- Navegação -->
-    <nav class="bg-black/50 fixed top-0 left-0 right-0 z-50 backdrop-blur-sm">
-        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
-            <a href="#" class="flex items-center text-2xl font-bold text-yellow-400 uppercase">
-                <img src="https://i.ibb.co/C5RxNvKW/Chat-GPT-Image-22-de-set-de-2025-22-20-38.png" alt="Logo Verão Turbo" class="h-10 mr-2">
-                <span>Verão Turbo</span>
-            </a>
-            <div class="hidden md:flex space-x-6 items-center">
-                <a href="#planos" class="text-white hover:text-yellow-400 transition">Planos</a>
-                <a href="#depoimentos" class="text-white hover:text-yellow-400 transition">Resultados</a>
-                <a href="#faq" class="text-white hover:text-yellow-400 transition">FAQ</a>
-                <a href="#contato" class="text-white hover:text-yellow-400 transition">Contato</a>
+import { useState, useEffect } from 'react'
+import { User, Lock, Eye, EyeOff, Play, Download, MessageCircle, Settings, LogOut, Home, HelpCircle, ChevronRight, ChevronLeft, Sparkles, Send } from 'lucide-react'
+
+// Componente para o ícone de carregamento
+const LoadingSpinner = () => (
+  <div className="flex justify-center items-center p-4">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-400"></div>
+  </div>
+);
+
+export default function VeraoTurboApp() {
+  const [isLoggedIn, setIsLoggedIn] = useState(true) // Mudança: usuário já entra logado
+  const [activeSection, setActiveSection] = useState('inicio')
+  const [selectedContent, setSelectedContent] = useState(null)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showForgotPassword, setShowForgotPassword] = useState(false)
+  const [currentSlide, setCurrentSlide] = useState(0)
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    password: ''
+  })
+
+  // Estado para configurações do perfil
+  const [profileData, setProfileData] = useState({
+    nome: 'joao',
+    telefone: '',
+    idade: '20',
+    sexo: 'Masculino',
+    altura: '170',
+    peso: '60'
+  })
+
+  // Estados para funcionalidades da Gemini API
+  const [generatedPlan, setGeneratedPlan] = useState('');
+  const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
+  const [coachMessages, setCoachMessages] = useState([]);
+  const [userMessage, setUserMessage] = useState('');
+  const [isCoachReplying, setIsCoachReplying] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+
+
+  // Dados do carrossel de treinos
+  const heroSlides = [
+    {
+      id: 1,
+      type: 'abdomen',
+      title: 'Abdômen Definido',
+      subtitle: 'Sua barriga tanquinho começa aqui!',
+      description: 'Exercícios intensivos para fortalecer o core e definir o abdômen em tempo recorde.',
+      image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=1200&h=800&fit=crop',
+      buttonText: 'Treinar Abdômen'
+    },
+    {
+      id: 2,
+      type: 'bumbum',
+      title: 'Bumbum e Pernas',
+      subtitle: 'Glúteos de ferro e pernas poderosas!',
+      description: 'Transforme seu corpo com exercícios específicos para glúteos e pernas tonificadas.',
+      image: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=1200&h=800&fit=crop',
+      buttonText: 'Treinar Glúteos'
+    },
+    {
+      id: 3,
+      type: 'massa',
+      title: 'Ganho de Massa',
+      subtitle: 'Construa músculos de verdade!',
+      description: 'Protocolo completo para hipertrofia e ganho de massa muscular acelerado.',
+      image: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=1200&h=800&fit=crop',
+      buttonText: 'Ganhar Massa'
+    },
+    {
+      id: 4,
+      type: 'definicao',
+      title: 'Definição Extrema',
+      subtitle: 'Músculos definidos e corpo seco!',
+      description: 'Treinos de alta intensidade para queimar gordura e definir cada músculo.',
+      image: 'https://images.unsplash.com/photo-1549060279-7e168fcee0c2?w=1200&h=800&fit=crop',
+      buttonText: 'Definir Corpo'
+    }
+  ]
+
+  // Auto-slide do carrossel a cada 3 segundos
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % heroSlides.length)
+    }, 3000)
+
+    return () => clearInterval(interval)
+  }, [heroSlides.length])
+
+  // Dados simulados de conteúdo
+  const contentData = {
+    abdomen: [
+      { id: 1, title: 'Abdômen Definido - Aula 1', duration: '15 min', thumbnail: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=225&fit=crop', type: 'video', description: 'Exercícios básicos para fortalecer o core e definir o abdômen.' },
+      { id: 2, title: 'Prancha Avançada', duration: '12 min', thumbnail: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=400&h=225&fit=crop', type: 'video', description: 'Variações de prancha para máxima ativação abdominal.' },
+      { id: 3, title: 'Guia Alimentar Abdômen', duration: 'PDF', thumbnail: 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=400&h=225&fit=crop', type: 'pdf', description: 'Dicas nutricionais para potencializar os resultados.' }
+    ],
+    bumbum: [
+      { id: 4, title: 'Glúteos de Ferro - Aula 1', duration: '20 min', thumbnail: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=400&h=225&fit=crop', type: 'video', description: 'Exercícios para fortalecer e definir glúteos e pernas.' },
+      { id: 5, title: 'Agachamento Perfeito', duration: '18 min', thumbnail: 'https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=400&h=225&fit=crop', type: 'video', description: 'Técnica correta e variações do agachamento.' },
+      { id: 6, title: 'Treino Pernas Completo', duration: '25 min', thumbnail: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=400&h=225&fit=crop', type: 'video', description: 'Rotina completa para pernas e glúteos.' }
+    ],
+    massa: [
+      { id: 7, title: 'Hipertrofia Total - Aula 1', duration: '30 min', thumbnail: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=400&h=225&fit=crop', type: 'video', description: 'Exercícios para ganho de massa muscular.' },
+      { id: 8, title: 'Treino Upper Body', duration: '28 min', thumbnail: 'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=400&h=225&fit=crop', type: 'video', description: 'Foco em membros superiores para hipertrofia.' },
+      { id: 9, title: 'Protocolo de Massa', duration: 'PDF', thumbnail: 'https://images.unsplash.com/photo-1532384748853-8f54a8f476e2?w=400&h=225&fit=crop', type: 'pdf', description: 'Guia completo para ganho de massa muscular.' },
+      // NOVO CARD PARA TREINO UPPER BODY FEMININO
+      { id: 108, title: '💪 Treino Membros Superiores Feminino', duration: '28 min', thumbnail: 'https://i.postimg.cc/6Qhg8WC2/Mulheres-mais-fortes-estudo-derruba-mito-do-sexo-fr-gil-definitivamente.jpg', type: 'video', description: 'Desenvolva força e definição nos membros superiores com foco na estética feminina. Ideal para hipertrofia e tonificação.' },
+    ],
+    definicao: [
+      { id: 10, title: 'Definição Extrema - Aula 1', duration: '22 min', thumbnail: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=225&fit=crop', type: 'video', description: 'Treino intenso para definição muscular.' },
+      { id: 11, title: 'HIIT Queima Gordura', duration: '15 min', thumbnail: 'https://images.unsplash.com/photo-1549060279-7e168fcee0c2?w=400&h=225&fit=crop', type: 'video', description: 'Treino intervalado de alta intensidade.' },
+      { id: 12, title: 'Cardio Funcional', duration: '20 min', thumbnail: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=400&h=225&fit=crop', type: 'video', description: 'Exercícios funcionais para definição.' }
+    ]
+  }
+  
+    // Função para chamar a API Gemini
+  const callGeminiAPI = async (prompt, systemInstruction) => {
+    const apiKey = ""; // Deixe em branco, será tratado pelo ambiente
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+
+    const payload = {
+      contents: [{ parts: [{ text: prompt }] }],
+    };
+
+    if (systemInstruction) {
+        payload.systemInstruction = { parts: [{ text: systemInstruction }] };
+    }
+
+    try {
+      // Implementação de exponential backoff
+      let response;
+      let retries = 3;
+      let delay = 1000;
+      for (let i = 0; i < retries; i++) {
+        response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (response.ok) break;
+        if (response.status === 429) {
+          await new Promise(resolve => setTimeout(resolve, delay));
+          delay *= 2;
+        } else {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+      }
+
+      if (!response.ok) {
+        throw new Error(`API request failed after ${retries} retries.`);
+      }
+
+      const result = await response.json();
+      const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!text) {
+          throw new Error("No text found in API response.");
+      }
+      return text;
+
+    } catch (error) {
+      console.error("Erro ao chamar a API Gemini:", error);
+      return "Desculpe, não foi possível processar sua solicitação no momento. Tente novamente mais tarde.";
+    }
+  };
+
+  const handleGeneratePlan = async () => {
+    if (!profileData.idade || !profileData.sexo || !profileData.altura || !profileData.peso) {
+        alert("Por favor, preencha todos os seus dados no perfil antes de gerar um plano.");
+        setActiveSection('configuracoes');
+        return;
+    }
+    setIsGeneratingPlan(true);
+    setGeneratedPlan('');
+    
+    const systemInstruction = `Você é um personal trainer de elite e nutricionista chamado 'Coach Turbo', especialista em criar planos de treino de alta performance para o app 'Verão Turbo'. Seja profissional, técnico e motivador.`;
+    const prompt = `Com base no perfil do usuário:
+- Sexo: ${profileData.sexo}
+- Idade: ${profileData.idade} anos
+- Altura: ${profileData.altura} cm
+- Peso: ${profileData.peso} kg
+
+Crie um plano de treino semanal detalhado com o objetivo principal de definição muscular e queima de gordura. O usuário é iniciante.
+
+**REGRAS DE FORMATAÇÃO E EMOJIS (OBRIGATÓRIO):**
+1.  **NÃO use NENHUM markdown.** Não use asteriscos (*), travessões (-), barras (/), hashtags (#), ou pipes (|). A formatação de tabela com pipes (como '| Exercício | Duração |') está PROIBIDA. Use APENAS quebras de linha e numeração simples (ex: "1. Agachamento").
+2.  **Use os seguintes emojis** para ilustrar as atividades de forma relevante:
+    * 💪: Força / Musculação
+    * 🏋️‍♂️: Treino de peso / Academia
+    * 🏋️‍♀️: Musculação feminina
+    * 🏃‍♂️: Corrida / Cardio
+    * 🏃‍♀️: Corrida feminina
+    * 🚴‍♂️: Bike / Spinning
+    * 🧘‍♀️: Alongamento / Equilíbrio
+    * 🤸‍♂️: Treino funcional
+    * 🏋️: Levantamento de peso
+    * 🥇: Superação / Objetivo atingido
+    * 🔥: Treino pegado / Queima calórica
+    * 💦: Suor / Esforço
+    * 🥦: Alimentação saudável
+    * 🍗: Proteína
+    * 🕒: Horário de treino / Disciplina
+    * ⏱️: Cronômetro / Tempo de execução
+    * 📈: Progresso / Evolução
+    * 🎯: Foco / Meta
+    * ⚡: Energia / Explosão
+    * 🧠: Mente forte / Foco mental
+    * ❤️‍🔥: Motivação / Determinação
+    * 🩸: Treino intenso / Pump
+    * 🏅: Conquista / Resultado
+    * 🧍‍♂️: Postura / Execução
+    * 🦵: Treino de pernas / Leg day
+
+**ESTRUTURA DO PLANO:**
+1.  Ser estruturado dia por dia (Segunda-feira a Domingo).
+2.  Incluir 2 dias de descanso (podendo ser descanso ativo, como 🧘‍♀️ Alongamento ou 🏃‍♀️ Caminhada leve).
+3.  Para cada dia de treino, liste os exercícios (ex: "1. 🦵 Agachamento Perfeito").
+4.  Para cada exercício, especifique o número de séries, repetições (ou tempo) e o tempo de descanso. (Ex: "3 séries de 10 repetições, 45s de descanso").
+5.  **REGRA DE ESPAÇAMENTO (MUITO IMPORTANTE):**
+    * Adicione uma **linha em branco** (um 'enter') entre o título do dia e o aquecimento.
+    * Adicione uma **linha em branco** entre o aquecimento e a lista de exercícios (antes do "1.").
+    * Adicione uma **linha em branco** entre cada exercício (ex: entre o "1." e o "2.").
+    * Adicione **DUAS linhas em branco** antes de começar o próximo dia (ex: entre o último exercício de Segunda e o título "TERÇAFEIRA").
+6.  Finalize com uma breve nota motivacional e profissional. 🎯📈`;
+    
+    const plan = await callGeminiAPI(prompt, systemInstruction);
+    
+    // Limpeza do texto para remover caracteres indesejados, conforme solicitado
+    let cleanedPlan = plan
+      .replace(/[*]/g, '')     // Remove *
+      .replace(/ - /g, ' ')     // Remove " - " (dash usado como separador/bullet)
+      .replace(/\//g, ' ')     // Remove / (barra)
+      .replace(/[#|]/g, '')     // Remove # e |
+      .replace(/(:?)-+(:?)/g, ''); // Remove linhas de tabela :---, ---:, ---
+
+    // A LINHA ABAIXO FOI REMOVIDA para permitir que a IA adicione linhas em branco para espaçamento.
+    // cleanedPlan = cleanedPlan.split('\n').filter(line => line.trim() !== '').join('\n');
+
+    setGeneratedPlan(cleanedPlan);
+    setIsGeneratingPlan(false);
+  };
+  
+  const handleSendMessage = async (e) => {
+    e.preventDefault();
+    if (!userMessage.trim()) return;
+
+    const newMessages = [...coachMessages, { sender: 'user', text: userMessage }];
+    setCoachMessages(newMessages);
+    setUserMessage('');
+    setIsCoachReplying(true);
+    
+    const systemInstruction = "Você é o Coach Turbo, um assistente de IA amigável, motivacional e especialista em fitness e nutrição do app Verão Turbo. Responda às perguntas dos usuários de forma clara, segura e encorajadora. Sempre inclua um aviso para consultarem um profissional de saúde antes de iniciar qualquer dieta ou programa de exercícios. Baseie suas respostas nos dados do usuário fornecidos no início do prompt.";
+
+    // Injeta o contexto do perfil no prompt
+    const contextPrompt = `Aqui estão os dados do usuário:
+- Sexo: ${profileData.sexo}
+- Idade: ${profileData.idade} anos
+- Altura: ${profileData.altura} cm
+- Peso: ${profileData.peso} kg
+- Telefone: ${profileData.telefone}
+
+Pergunta do usuário: "${userMessage}"`;
+
+    const response = await callGeminiAPI(contextPrompt, systemInstruction);
+
+    setCoachMessages([...newMessages, { sender: 'ai', text: response }]);
+    setIsCoachReplying(false);
+  };
+
+
+  // Validação de senha
+  const validatePassword = (password) => {
+    return password.length >= 6
+  }
+
+  const handleLogin = (e) => {
+    e.preventDefault()
+    
+    if (!formData.email || !formData.password) {
+      alert('Por favor, preencha todos os campos.')
+      return
+    }
+
+    if (!validatePassword(formData.password)) {
+      alert('A senha deve ter pelo menos 6 caracteres.')
+      return
+    }
+
+    // Simulação de login
+    setIsLoggedIn(true)
+    alert('Login realizado com sucesso!')
+  }
+
+  const handleRegister = (e) => {
+    e.preventDefault()
+    
+    if (!formData.name || !formData.email || !formData.password) {
+      alert('Por favor, preencha todos os campos.')
+      return
+    }
+
+    if (!validatePassword(formData.password)) {
+      alert('A senha deve ter pelo menos 6 caracteres.')
+      return
+    }
+
+    // Simulação de cadastro
+    setIsLoggedIn(true)
+    alert('Cadastro realizado com sucesso!')
+  }
+
+  const handleForgotPassword = (e) => {
+    e.preventDefault()
+    
+    if (!formData.email) {
+      alert('Por favor, digite seu e-mail.')
+      return
+    }
+
+    // Simulação de recuperação de senha
+    alert(`Um link de recuperação foi enviado para ${formData.email}`)
+    setShowForgotPassword(false)
+  }
+
+  const openWhatsApp = () => {
+    window.open('https://wa.me/5511999999999?text=Olá! Preciso de suporte com o Verão Turbo.', '_blank')
+  }
+
+  const handleProfileChange = (field, value) => {
+    setProfileData(prev => ({
+      ...prev,
+      [field]: value
+    }))
+  }
+
+  const handleSaveProfile = (e) => {
+    e.preventDefault()
+    
+    // Lógica para salvar perfil (simulação)
+    // alert('Perfil atualizado com sucesso!') // Removido
+    
+    // Mostrar notificação de sucesso
+    setToastMessage('Perfil atualizado com sucesso!');
+    setShowToast(true);
+
+    // Esconder a notificação após 3 segundos
+    setTimeout(() => {
+      setShowToast(false);
+      setToastMessage('');
+    }, 3000);
+  }
+
+  const handleSendWhatsApp = () => {
+    if (!profileData.telefone) {
+      setToastMessage('Por favor, preencha seu telefone no Perfil.');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+      setActiveSection('configuracoes');
+      return;
+    }
+    // Limpa o número para garantir que está no formato correto
+    const cleanPhone = profileData.telefone.replace(/\D/g, '');
+    let phoneWithCountryCode = cleanPhone;
+    
+    // Adiciona o código do Brasil (55) se não estiver presente
+    if (cleanPhone.length <= 11) { // Formatos 11999998888 ou 2199998888
+       phoneWithCountryCode = `55${cleanPhone}`;
+    }
+
+    const encodedText = encodeURIComponent(generatedPlan);
+    const whatsappUrl = `https://wa.me/${phoneWithCountryCode}?text=${encodedText}`;
+    window.open(whatsappUrl, '_blank');
+  };
+
+  const handleSavePDF = () => {
+    // Cria uma nova janela para impressão
+    const planWindow = window.open('', '_blank');
+    planWindow.document.write(`
+      <html>
+        <head>
+          <title>Seu Plano de Treino - Verão Turbo</title>
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; line-height: 1.6; padding: 30px; }
+            pre { 
+              white-space: pre-wrap; 
+              word-wrap: break-word; 
+              font-family: monospace; 
+              font-size: 14px; 
+              background-color: #f9f9f9; 
+              padding: 20px; 
+              border-radius: 8px; 
+              border: 1px solid #eee;
+            }
+            h1 { color: #f59e0b; border-bottom: 2px solid #f59e0b; padding-bottom: 10px; }
+          </style>
+        </head>
+        <body>
+          <h1>Seu Plano de Treino Personalizado</h1>
+          <pre>${generatedPlan}</pre>
+          <script>
+            setTimeout(() => {
+              window.print(); // Abre a caixa de diálogo de impressão
+            }, 500); // Espera 0.5s para renderizar
+          </script>
+        </body>
+      </html>
+    `);
+    planWindow.document.close();
+  };
+
+
+  const nextSlide = () => {
+    setCurrentSlide((prev) => (prev + 1) % heroSlides.length)
+  }
+
+  const prevSlide = () => {
+    setCurrentSlide((prev) => (prev - 1 + heroSlides.length) % heroSlides.length)
+  }
+
+  const goToSlide = (index) => {
+    setCurrentSlide(index)
+  }
+
+  if (selectedContent) {
+    return (
+      <div className="min-h-screen bg-black text-white">
+        {/* Header */}
+        <div className="bg-gray-900 p-4 flex items-center justify-between">
+          <button
+            onClick={() => setSelectedContent(null)}
+            className="text-yellow-400 hover:text-yellow-300 transition-colors"
+          >
+            ← Voltar
+          </button>
+          <div className="flex items-center space-x-3">
+            <img 
+              src="https://k6hrqrxuu8obbfwn.public.blob.vercel-storage.com/temp/b916953d-abca-400c-8a02-0cba6ad3af57.png" 
+              alt="Verão Turbo Logo" 
+              className="h-8 w-auto" 
+            />
+            <h1 className="text-xl font-bold text-yellow-400">VERÃO TURBO</h1>
+          </div>
+          <div></div>
+        </div>
+
+        {/* Content Detail */}
+        <div className="p-6">
+          <div className="max-w-4xl mx-auto">
+            {/* Video Player */}
+            <div className="relative bg-gray-900 rounded-2xl overflow-hidden mb-6">
+              <img
+                src={selectedContent.thumbnail}
+                alt={selectedContent.title}
+                className="w-full h-64 md:h-96 object-cover"
+              />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <button className="bg-yellow-400 text-black p-4 rounded-full hover:bg-yellow-500 transition-colors">
+                  <Play className="w-8 h-8" />
+                </button>
+              </div>
             </div>
-            <a href="#" class="hidden md:flex items-center justify-center bg-yellow-400 text-black font-bold py-2 px-4 rounded-lg hover:bg-yellow-500 transition">
-                <img src="https://i.ibb.co/1GSYQHbD/10000403-removebg-preview.png" alt="Ícone WhatsApp" class="h-5 w-5 mr-2">
-                <span>COMECE AGORA</span>
-            </a>
-            <button id="mobile-menu-button" class="md:hidden text-white">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
-                </svg>
+
+            {/* Content Info */}
+            <div className="space-y-4">
+              <h2 className="text-2xl font-bold">{selectedContent.title}</h2>
+              <div className="flex items-center space-x-4 text-gray-400">
+                <span>{selectedContent.duration}</span>
+                <span>•</span>
+                <span className="capitalize">{selectedContent.type}</span>
+              </div>
+              <p className="text-gray-300 leading-relaxed">{selectedContent.description}</p>
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap gap-4 pt-4">
+                <button className="bg-yellow-400 text-black px-6 py-3 rounded-lg font-medium hover:bg-yellow-500 transition-colors flex items-center space-x-2">
+                  <Play className="w-5 h-5" />
+                  <span>Assistir</span>
+                </button>
+                {selectedContent.type === 'pdf' && (
+                  <button className="bg-gray-800 text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-700 transition-colors flex items-center space-x-2">
+                    <Download className="w-5 h-5" />
+                    <span>Download</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-black text-white flex relative"> {/* Adicionado relative aqui se não estiver */}
+      
+      {/* Toast Notification */}
+      {showToast && (
+        <div className="fixed top-8 right-8 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-50 transition-all duration-300">
+          {toastMessage}
+        </div>
+      )}
+
+      {/* Sidebar */}
+      <div className="w-64 bg-black border-r border-gray-800 flex flex-col">
+        {/* Logo */}
+        <div className="p-6 border-b border-gray-800 flex justify-center">
+          <img 
+            src="https://k6hrqrxuu8obbfwn.public.blob.vercel-storage.com/temp/b916953d-abca-400c-8a02-0cba6ad3af57.png" 
+            alt="Verão Turbo Logo" 
+            className="h-20 w-auto" 
+          />
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex-1 p-4">
+          <div className="space-y-2">
+            <button
+              onClick={() => setActiveSection('inicio')}
+              className={`w-full flex items-center space-x-3 p-3 rounded-lg transition-colors ${
+                activeSection === 'inicio' ? 'bg-yellow-400 text-black' : 'text-gray-300 hover:bg-gray-800'
+              }`}
+            >
+              <Home className="w-5 h-5" />
+              <span>Início</span>
             </button>
-        </div>
-        <!-- Menu Mobile -->
-        <div id="mobile-menu" class="hidden md:hidden bg-black/80">
-            <a href="#planos" class="block text-white text-center py-2 hover:bg-yellow-400 hover:text-black transition">Planos</a>
-            <a href="#depoimentos" class="block text-white text-center py-2 hover:bg-yellow-400 hover:text-black transition">Resultados</a>
-            <a href="#faq" class="block text-white text-center py-2 hover:bg-yellow-400 hover:text-black transition">FAQ</a>
-            <a href="#contato" class="block text-white text-center py-2 hover:bg-yellow-400 hover:text-black transition">Contato</a>
-            <div class="p-4">
-                 <a href="#" class="block flex items-center justify-center bg-yellow-400 text-black font-bold py-2 px-4 rounded-lg hover:bg-yellow-500 transition text-center">
-                    <img src="https://i.ibb.co/1GSYQHbD/10000403-removebg-preview.png" alt="Ícone WhatsApp" class="h-5 w-5 mr-2">
-                    <span>COMECE AGORA</span>
-                </a>
+            
+            <button
+              onClick={() => setActiveSection('planoAI')}
+              className={`w-full flex items-center space-x-3 p-3 rounded-lg transition-colors ${
+                activeSection === 'planoAI' ? 'bg-yellow-400 text-black' : 'text-gray-300 hover:bg-gray-800'
+              }`}
+            >
+              <Sparkles className="w-5 h-5" />
+              <span>Plano de Treino AI</span>
+            </button>
+
+            <div className="pt-4">
+              <p className="text-xs text-gray-500 uppercase tracking-wider mb-2 px-3">Treinos</p>
+              <button
+                onClick={() => setActiveSection('abdomen')}
+                className={`w-full flex items-center justify-between p-3 rounded-lg transition-colors ${
+                  activeSection === 'abdomen' ? 'bg-gray-800 text-yellow-400' : 'text-gray-300 hover:bg-gray-800'
+                }`}
+              >
+                <span>Abdômen</span>
+                <ChevronRight className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setActiveSection('bumbum')}
+                className={`w-full flex items-center justify-between p-3 rounded-lg transition-colors ${
+                  activeSection === 'bumbum' ? 'bg-gray-800 text-yellow-400' : 'text-gray-300 hover:bg-gray-800'
+                }`}
+              >
+                <span>Bumbum e Pernas</span>
+                <ChevronRight className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setActiveSection('massa')}
+                className={`w-full flex items-center justify-between p-3 rounded-lg transition-colors ${
+                  activeSection === 'massa' ? 'bg-gray-800 text-yellow-400' : 'text-gray-300 hover:bg-gray-800'
+                }`}
+              >
+                <span>Ganho de Massa</span>
+                <ChevronRight className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setActiveSection('definicao')}
+                className={`w-full flex items-center justify-between p-3 rounded-lg transition-colors ${
+                  activeSection === 'definicao' ? 'bg-gray-800 text-yellow-400' : 'text-gray-300 hover:bg-gray-800'
+                }`}
+              >
+                <span>Definição</span>
+                <ChevronRight className="w-4 h-4" />
+              </button>
             </div>
-        </div>
-    </nav>
 
-    <!-- Seção 1: Herói -->
-    <header class="hero-bg h-screen flex items-center justify-center relative text-white text-center">
-        <div class="absolute inset-0 bg-black/60"></div>
-        <div class="relative z-10 p-6">
-            <h1 class="text-5xl md:text-7xl font-extrabold uppercase tracking-wider">O VERÃO QUE VOCÊ SEMPRE QUIS, <span class="text-yellow-400">AGORA!</span></h1>
-            <p class="mt-4 text-lg md:text-xl max-w-2xl mx-auto">Planilhas de treino estratégicos para resultados rápidos e transformadores.</p>
-            <a href="#" class="mt-8 inline-flex items-center justify-center bg-yellow-400 text-black font-bold text-lg py-4 px-10 rounded-lg uppercase hover:bg-yellow-500 transition-transform hover:scale-105 shadow-lg">
-                <img src="https://i.ibb.co/1GSYQHbD/10000403-removebg-preview.png" alt="Ícone WhatsApp" class="h-6 w-6 mr-3">
-                <span>Comece Agora</span>
-            </a>
-            <div class="mt-4 text-sm text-gray-300">
-                <span>🏆 +1.000 aulas funcionais</span>
+            <div className="pt-4 border-t border-gray-800 mt-4">
+               <button
+                  onClick={() => setActiveSection('coachAI')}
+                  className={`w-full flex items-center space-x-3 p-3 rounded-lg transition-colors ${
+                    activeSection === 'coachAI' ? 'bg-yellow-400 text-black' : 'text-gray-300 hover:bg-gray-800'
+                  }`}
+                >
+                  <MessageCircle className="w-5 h-5" />
+                  <span>Coach AI</span>
+                </button>
+              <button
+                onClick={() => setActiveSection('suporte')}
+                className={`w-full flex items-center space-x-3 p-3 rounded-lg transition-colors ${
+                  activeSection === 'suporte' ? 'bg-yellow-400 text-black' : 'text-gray-300 hover:bg-gray-800'
+                }`}
+              >
+                <HelpCircle className="w-5 h-5" />
+                <span>Suporte</span>
+              </button>
+              <button
+                onClick={() => setActiveSection('configuracoes')}
+                className={`w-full flex items-center space-x-3 p-3 rounded-lg transition-colors ${
+                  activeSection === 'configuracoes' ? 'bg-yellow-400 text-black' : 'text-gray-300 hover:bg-gray-800'
+                }`}
+              >
+                <User className="w-5 h-5" />
+                <span>Perfil</span>
+              </button>
             </div>
-        </div>
-    </header>
+          </div>
+        </nav>
+      </div>
 
-    <main>
-        <!-- Seção 2: Benefícios Rápidos -->
-        <section class="bg-black text-white py-16">
-            <div class="container mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-12 text-center">
-                <div class="flex flex-col items-center">
-                    <div class="bg-yellow-400 p-4 rounded-full mb-4">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-                    </div>
-                    <h3 class="text-xl font-bold mb-2">Treinos Direcionados</h3>
-                    <p class="text-gray-400">Abdômen, Pernas, Glúteos e Ganho de Massa.</p>
-                </div>
-                <div class="flex flex-col items-center">
-                    <div class="bg-yellow-400 p-4 rounded-full mb-4">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                    </div>
-                    <h3 class="text-xl font-bold mb-2">Resultado Rápido</h3>
-                    <p class="text-gray-400">Método focado para o corpo de verão.</p>
-                </div>
-                <div class="flex flex-col items-center">
-                    <div class="bg-yellow-400 p-4 rounded-full mb-4">
-                       <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" /></svg>
-                    </div>
-                    <h3 class="text-xl font-bold mb-2">Método Testado</h3>
-                    <p class="text-gray-400">Desenvolvido por Personal Trainers qualificados.</p>
-                </div>
-            </div>
-        </section>
+      {/* Main Content */}
+      <div className="flex-1 overflow-y-auto">
+        {activeSection === 'inicio' && (
+          <div className="p-8">
+            <div className="max-w-6xl mx-auto">
+              <div className="mb-8">
+                <h2 className="text-3xl font-bold mb-2">Bem-vindo(a) ao Verão Turbo!</h2>
+                <p className="text-xl text-yellow-400 font-medium">A sua transformação começa aqui.</p>
+              </div>
 
-        <!-- Seção 3: Planos de Treino -->
-        <section id="planos" class="bg-white py-20">
-            <div class="container mx-auto px-4 text-center">
-                <h2 class="text-4xl font-bold text-black uppercase mb-12">Escolha seu <span class="text-yellow-500">Objetivo</span></h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-                    <!-- Card 1 -->
-                    <div class="gradient-card text-black p-8 rounded-xl shadow-2xl flex flex-col items-center text-center transform hover:scale-105 transition-transform duration-300">
-                        <span class="text-5xl mb-4">🔥</span>
-                        <h3 class="text-2xl font-bold uppercase mb-2">Queima & Definição</h3>
-                        <p class="mb-6 flex-grow">Para secar e queimar gordura com treinos de alta intensidade.</p>
-                        <a href="#" class="bg-black text-white font-bold py-2 px-6 rounded-lg hover:bg-gray-800 transition">Ver Mais</a>
-                    </div>
-                    <!-- Card 2 -->
-                    <div class="gradient-card text-black p-8 rounded-xl shadow-2xl flex flex-col items-center text-center transform hover:scale-105 transition-transform duration-300">
-                        <img src="https://i.ibb.co/gMgnNd6H/Spa-Anti-Aging-Le-Art-Clinic.jpg" alt="Homem com abdômen definido" class="w-24 h-24 object-cover rounded-full mb-4 border-4 border-white shadow-lg">
-                        <h3 class="text-2xl font-bold uppercase mb-2">Trincar Abdômen</h3>
-                        <p class="mb-6 flex-grow">Foco no abdômen chapado para você exibir no verão.</p>
-                        <a href="#" class="bg-black text-white font-bold py-2 px-6 rounded-lg hover:bg-gray-800 transition">Ver Mais</a>
-                    </div>
-                    <!-- Card 3 -->
-                    <div class="gradient-card text-black p-8 rounded-xl shadow-2xl flex flex-col items-center text-center transform hover:scale-105 transition-transform duration-300">
-                        <img src="https://i.ibb.co/ksnhBZz0/download.jpg" alt="Mulher treinando glúteos e pernas" class="w-24 h-24 object-cover rounded-full mb-4 border-4 border-white shadow-lg">
-                        <h3 class="text-2xl font-bold uppercase mb-2">Glúteos & Pernas</h3>
-                        <p class="mb-6 flex-grow">Para tonificar e fortalecer os membros inferiores com método comprovado.</p>
-                        <a href="#" class="bg-black text-white font-bold py-2 px-6 rounded-lg hover:bg-gray-800 transition">Ver Mais</a>
-                    </div>
-                    <!-- Card 4 -->
-                    <div class="gradient-card text-black p-8 rounded-xl shadow-2xl flex flex-col items-center text-center transform hover:scale-105 transition-transform duration-300">
-                        <img src="https://i.ibb.co/TqtMRNF3/f61907d8-54cd-457e-af30-4fee2d3156ce.jpg" alt="Homem treinando para ganho de massa" class="w-24 h-24 object-cover rounded-full mb-4 border-4 border-white shadow-lg">
-                        <h3 class="text-2xl font-bold uppercase mb-2">Ganho de Massa</h3>
-                        <p class="mb-6 flex-grow">Hipertrofia para quem busca mais volume muscular.</p>
-                        <a href="#" class="bg-black text-white font-bold py-2 px-6 rounded-lg hover:bg-gray-800 transition">Ver Mais</a>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Seção 4: Depoimentos -->
-        <section id="depoimentos" class="bg-black text-white py-20">
-            <div class="container mx-auto px-4 text-center">
-                <h2 class="text-4xl font-bold uppercase mb-12">Resultados <span class="text-yellow-400">Reais</span> de Quem Confia</h2>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    <!-- Depoimento 1 -->
-                    <div class="bg-gray-800 p-6 rounded-lg">
-                        <img src="https://i.ibb.co/xKd6Qx9n/fbe6952c-968d-4d69-b4f8-2820ce1cc455.jpg" alt="Foto de antes e depois do João" class="w-full h-48 object-cover rounded-md mb-4">
-                        <blockquote class="text-lg italic">"Em 8 semanas, sequei 6kg e defini o abdômen. Incrível!"</blockquote>
-                        <p class="mt-4 font-bold">- João P., 27 anos</p>
-                    </div>
-                    <!-- Depoimento 2 -->
-                    <div class="bg-gray-800 p-6 rounded-lg">
-                        <img src="https://i.ibb.co/N615rMQY/Shed-8-Kg-Without-the-Gym.jpg" alt="Foto de antes e depois da Maria" class="w-full h-48 object-cover rounded-md mb-4">
-                        <blockquote class="text-lg italic">"Finalmente consegui o resultado que queria para os glúteos. As planilhas são ótimas!"</blockquote>
-                        <p class="mt-4 font-bold">- Maria S., 31 anos</p>
-                    </div>
-                    <!-- Depoimento 3 -->
-                    <div class="bg-gray-800 p-6 rounded-lg">
-                        <img src="https://i.ibb.co/xTwmbGZ/MUDAN-A-COM-O-CROSSFIT.jpg" alt="Foto de antes e depois do Carlos" class="w-full h-48 object-cover rounded-md mb-4">
-                        <blockquote class="text-lg italic">"Perdi a barriga da cerveja e ganhei massa muscular. Recomendo demais!"</blockquote>
-                        <p class="mt-4 font-bold">- Carlos A., 35 anos</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Seção 5: CTA Final -->
-        <section class="bg-yellow-400 text-black py-20 text-center">
-            <div class="container mx-auto px-4">
-                 <h2 class="text-4xl font-extrabold uppercase mb-6">Pronto para sua transformação?</h2>
-                 <p class="text-xl mb-8 max-w-2xl mx-auto">Não deixe para o ano que vem o corpo de verão que você pode conquistar agora.</p>
-                 <a href="#" class="inline-flex items-center justify-center bg-black text-white font-bold text-lg py-4 px-10 rounded-lg uppercase hover:bg-gray-800 transition-transform hover:scale-105 shadow-lg">
-                    <img src="https://i.ibb.co/1GSYQHbD/10000403-removebg-preview.png" alt="Ícone WhatsApp" class="h-6 w-6 mr-3">
-                    <span>Quero Meu Corpo de Verão</span>
-                </a>
-            </div>
-        </section>
-        
-        <!-- Seção 6: Como Funciona -->
-        <section class="bg-white py-20">
-            <div class="container mx-auto px-4 text-center">
-                <h2 class="text-4xl font-bold text-black uppercase mb-4">Simples, Rápido e Eficiente</h2>
-                <p class="text-lg text-gray-600 mb-12 max-w-3xl mx-auto">Nossas planilhas transformam seu corpo de forma descomplicada. Veja como é fácil:</p>
-                <div class="flex flex-col md:flex-row justify-center items-center gap-8 md:gap-0">
-                    <!-- Passo 1 -->
-                    <div class="flex flex-col items-center w-64">
-                        <div class="bg-black p-4 rounded-full mb-4">
-                             <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
-                        </div>
-                        <h3 class="text-xl font-bold mb-2">1. Escolha seu Objetivo</h3>
-                        <p class="text-gray-600">Defina se quer secar, definir ou ganhar massa.</p>
-                    </div>
-                    
-                    <div class="text-3xl text-yellow-500 mx-8 hidden md:block">➡️</div>
-
-                    <!-- Passo 2 -->
-                    <div class="flex flex-col items-center w-64">
-                        <div class="bg-black p-4 rounded-full mb-4">
-                           <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
-                        </div>
-                        <h3 class="text-xl font-bold mb-2">2. Siga a Planilha</h3>
-                        <p class="text-gray-600">Acesse os treinos na palma da sua mão, onde quiser.</p>
-                    </div>
-                    
-                     <div class="text-3xl text-yellow-500 mx-8 hidden md:block">➡️</div>
-
-                    <!-- Passo 3 -->
-                    <div class="flex flex-col items-center w-64">
-                        <div class="bg-black p-4 rounded-full mb-4">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" /></svg>
-                        </div>
-                        <h3 class="text-xl font-bold mb-2">3. Conquiste os Resultados</h3>
-                        <p class="text-gray-600">Sinta a diferença no espelho e aproveite seu verão.</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-
-        <!-- Seção 7: Contato e FAQ -->
-        <section id="faq" class="bg-black text-white py-20">
-            <div class="container mx-auto px-4 grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
-                <!-- Coluna 1: Contato -->
-                <div id="contato">
-                    <h2 class="text-4xl font-bold uppercase mb-8">Fale <span class="text-yellow-400">Conosco</span></h2>
-                    <form action="#" method="POST" class="space-y-4">
-                        <div>
-                            <label for="name" class="block mb-2 text-sm font-medium">Nome</label>
-                            <input type="text" id="name" class="bg-gray-800 border border-gray-600 text-white text-sm rounded-lg focus:ring-yellow-500 focus:border-yellow-500 block w-full p-2.5" placeholder="Seu nome" required>
-                        </div>
-                        <div>
-                            <label for="email" class="block mb-2 text-sm font-medium">Email</label>
-                            <input type="email" id="email" class="bg-gray-800 border border-gray-600 text-white text-sm rounded-lg focus:ring-yellow-500 focus:border-yellow-500 block w-full p-2.5" placeholder="seu@email.com" required>
-                        </div>
-                        <div>
-                            <label for="message" class="block mb-2 text-sm font-medium">Mensagem</label>
-                            <textarea id="message" rows="4" class="bg-gray-800 border border-gray-600 text-white text-sm rounded-lg focus:ring-yellow-500 focus:border-yellow-500 block w-full p-2.5" placeholder="Sua dúvida ou mensagem..."></textarea>
-                        </div>
-                        <button type="submit" class="w-full flex items-center justify-center bg-yellow-400 text-black font-bold py-3 px-5 rounded-lg hover:bg-yellow-500 transition">
-                            <img src="https://i.ibb.co/1GSYQHbD/10000403-removebg-preview.png" alt="Ícone WhatsApp" class="h-6 w-6 mr-3">
-                            <span>Enviar Mensagem</span>
+              {/* Hero Carousel */}
+              <div className="mb-12">
+                <div className="relative rounded-3xl overflow-hidden h-96 md:h-[500px] lg:h-[600px]">
+                  <div className="relative w-full h-full">
+                    <img
+                      src={heroSlides[currentSlide].image}
+                      alt={heroSlides[currentSlide].title}
+                      className="w-full h-full object-cover transition-all duration-500"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent">
+                      <div className="absolute bottom-0 left-0 right-0 p-8 md:p-12">
+                        <h3 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-2">
+                          {heroSlides[currentSlide].title}
+                        </h3>
+                        <p className="text-xl md:text-2xl text-yellow-400 font-semibold mb-4">
+                          {heroSlides[currentSlide].subtitle}
+                        </p>
+                        <p className="text-lg md:text-xl text-gray-200 mb-6 max-w-2xl">
+                          {heroSlides[currentSlide].description}
+                        </p>
+                        <button 
+                          onClick={() => setActiveSection(heroSlides[currentSlide].type)}
+                          className="bg-yellow-400 text-black px-8 py-4 rounded-xl font-bold text-lg hover:bg-yellow-500 transition-all transform hover:scale-105"
+                        >
+                          {heroSlides[currentSlide].buttonText}
                         </button>
-                    </form>
-                    <div class="mt-8 flex justify-center space-x-4">
-                        <a href="#" class="bg-gray-800 p-3 rounded-full hover:bg-yellow-400 group">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white group-hover:text-black" viewBox="0 0 24 24" fill="currentColor"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.894 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.886-.001 2.267.655 4.398 1.908 6.166l-1.29 4.721 4.833-1.274z"/></svg>
-                        </a>
-                        <a href="#" class="bg-gray-800 p-3 rounded-full hover:bg-yellow-400 group">
-                           <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white group-hover:text-black" viewBox="0 0 24 24" fill="currentColor"><path d="M9.78 18.65l.28-4.23.01-2.02c0-.4.19-.6.54-.6.35 0 .61.2.96.61.35.42.73.87 1.13 1.35.39.47.78.93 1.18 1.4l.42.47c.45.5.88.93 1.3.93.43 0 .8-.14 1.12-.42.33-.28.49-.63.49-1.04 0-.4-.13-.74-.4-1.01l-1.16-1.3c-.8-.92-1.42-1.63-1.86-2.12-.43-.49-1.06-1.15-1.9-2-.84-.85-1.68-1.54-2.51-2.05-.83-.5-1.6-.76-2.3-.76-.82 0-1.44.27-1.88.8-.43.53-.65 1.2-.65 2.02v2.13l-.21 3.3c-.03.6.04 1.1.2 1.5.17.4.4.7.7.9.3.2.6.3.9.3.43 0 .83-.14 1.2-.4z"/></svg>
-                        </a>
+                      </div>
                     </div>
+                  </div>
+                  <button onClick={prevSlide} className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-3 rounded-full transition-all"><ChevronLeft className="w-6 h-6" /></button>
+                  <button onClick={nextSlide} className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-3 rounded-full transition-all"><ChevronRight className="w-6 h-6" /></button>
+                  <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
+                    {heroSlides.map((_, index) => (<button key={index} onClick={() => goToSlide(index)} className={`w-3 h-3 rounded-full transition-all ${index === currentSlide ? 'bg-yellow-400' : 'bg-white/50 hover:bg-white/70'}`} />))}
+                  </div>
                 </div>
-                
-                <!-- Coluna 2: FAQ -->
-                <div>
-                    <h2 class="text-4xl font-bold uppercase mb-8">Dúvidas <span class="text-yellow-400">Frequentes</span></h2>
-                    <div class="space-y-4" id="faq-container">
-                        <!-- FAQ Item 1 -->
-                        <div class="faq-item bg-gray-800 rounded-lg">
-                            <button class="question w-full flex justify-between items-center text-left p-5 font-semibold">
-                                <span>Funciona para iniciantes?</span>
-                                <span class="text-yellow-400 text-2xl">
-                                    <span class="icon-plus">+</span>
-                                    <span class="icon-minus">-</span>
-                                </span>
-                            </button>
-                            <div class="answer px-5 pb-5 text-gray-300">
-                                Sim! Nossas planilhas são desenhadas para todos os níveis, desde o completo iniciante ao avançado. Cada exercício tem instruções claras para garantir a execução correta e segura.
-                            </div>
-                        </div>
-                        <!-- FAQ Item 2 -->
-                        <div class="faq-item bg-gray-800 rounded-lg">
-                            <button class="question w-full flex justify-between items-center text-left p-5 font-semibold">
-                                <span>Preciso de equipamentos de academia?</span>
-                                <span class="text-yellow-400 text-2xl">
-                                    <span class="icon-plus">+</span>
-                                    <span class="icon-minus">-</span>
-                                </span>
-                            </button>
-                            <div class="answer px-5 pb-5 text-gray-300">
-                                Temos planos variados! Alguns utilizam o peso do corpo e podem ser feitos em qualquer lugar. Outros são otimizados para quem tem acesso a uma academia. Você escolhe o que melhor se adapta à sua realidade.
-                            </div>
-                        </div>
-                        <!-- FAQ Item 3 -->
-                        <div class="faq-item bg-gray-800 rounded-lg">
-                            <button class="question w-full flex justify-between items-center text-left p-5 font-semibold">
-                                <span>Em quanto tempo vejo os resultados?</span>
-                                <span class="text-yellow-400 text-2xl">
-                                    <span class="icon-plus">+</span>
-                                    <span class="icon-minus">-</span>
-                                </span>
-                            </button>
-                            <div class="answer px-5 pb-5 text-gray-300">
-                                Seguindo a planilha corretamente e mantendo uma alimentação balanceada, a maioria dos nossos alunos relata sentir e ver diferenças significativas nas primeiras 4 a 8 semanas.
-                            </div>
-                        </div>
-                         <!-- FAQ Item 4 -->
-                        <div class="faq-item bg-gray-800 rounded-lg">
-                            <button class="question w-full flex justify-between items-center text-left p-5 font-semibold">
-                                <span>Como acesso as planilhas após a compra?</span>
-                                <span class="text-yellow-400 text-2xl">
-                                    <span class="icon-plus">+</span>
-                                    <span class="icon-minus">-</span>
-                                </span>
-                            </button>
-                            <div class="answer px-5 pb-5 text-gray-300">
-                                Imediatamente após a confirmação do pagamento, você receberá um e-mail com o link para acessar sua área de membros exclusiva, onde todas as planilhas e materiais de apoio estarão disponíveis.
-                            </div>
-                        </div>
-                    </div>
-                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {[{ key: 'abdomen', title: 'Treino Abdômen', image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop' }, { key: 'bumbum', title: 'Bumbum e Pernas', image: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=400&h=300&fit=crop' }, { key: 'massa', title: 'Ganho de Massa', image: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=400&h=300&fit=crop' }, { key: 'definicao', title: 'Definição', image: 'https://images.unsplash.com/photo-1549060279-7e168fcee0c2?w=400&h=300&fit=crop' }].map((category) => (<button key={category.key} onClick={() => setActiveSection(category.key)} className="bg-gray-900 rounded-2xl overflow-hidden hover:bg-gray-800 transition-all group transform hover:scale-105"><div className="relative"><img src={category.image} alt={category.title} className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-300" /><div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end"><h3 className="text-white font-bold text-lg p-4 w-full text-center">{category.title}</h3></div></div></button>))}
+              </div>
             </div>
-        </section>
-
-    </main>
-
-    <!-- Rodapé -->
-    <footer class="bg-black border-t border-gray-800">
-        <div class="container mx-auto px-4 py-8">
-            <div class="flex flex-col md:flex-row justify-between items-center text-center md:text-left">
-                <div class="mb-4 md:mb-0">
-                    <a href="#" class="flex items-center justify-center md:justify-start text-2xl font-bold text-yellow-400 uppercase mb-2">
-                         <img src="https://i.ibb.co/C5RxNvKW/Chat-GPT-Image-22-de-set-de-2025-22-20-38.png" alt="Logo Verão Turbo" class="h-10 mr-2">
-                         <span>Verão Turbo</span>
-                    </a>
-                    <p class="text-gray-500 text-sm mt-1">© 2025 Verão Turbo. Todos os direitos reservados.</p>
-                </div>
-                <div class="flex space-x-6 mb-4 md:mb-0">
-                    <a href="#planos" class="text-gray-400 hover:text-yellow-400 transition">Planos</a>
-                    <a href="#depoimentos" class="text-gray-400 hover:text-yellow-400 transition">Resultados</a>
-                    <a href="#faq" class="text-gray-400 hover:text-yellow-400 transition">FAQ</a>
-                </div>
-                <div class="flex space-x-4">
-                    <a href="#" class="text-gray-400 hover:text-yellow-400 transition">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.85s-.011 3.584-.069 4.85c-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07s-3.584-.012-4.85-.07c-3.252-.148-4.771-1.691-4.919-4.919-.058-1.265-.069-1.645-.069-4.85s.011-3.584.069-4.85c.149-3.225 1.664-4.771 4.919 4.919 1.266-.057 1.644-.069 4.85-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948s.014 3.667.072 4.947c.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072s3.667-.014 4.947-.072c4.358-.2 6.78-2.618 6.98-6.98.059-1.281.073-1.689.073-4.948s-.014-3.667-.072-4.947c-.2-4.358-2.618-6.78-6.98-6.98-1.281-.058-1.689-.072-4.948-.072zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.162 6.162 6.162 6.162-2.759 6.162-6.162-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4s1.791-4 4-4 4 1.79 4 4-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.441 1.441 1.441 1.441-.645 1.441-1.441-.645-1.44-1.441-1.44z"/></svg>
-                    </a>
-                    <a href="#" class="text-gray-400 hover:text-yellow-400 transition">
-                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12.525.02c1.31-.02 2.61-.01 3.91.02.52.01 1.03.04 1.54.08.54.04 1.08.12 1.61.27.81.23 1.57.57 2.22 1.08.65.52 1.2 1.15 1.65 1.85.39.59.7 1.26.9 1.98.2.73.31 1.48.36 2.25.04.6.06 1.2.07 1.8.01.62.01 1.24.01 1.87v.03c-.01.62-.01 1.24-.02 1.86-.04.77-.16 1.52-.36 2.25-.2.72-.51 1.39-.9 1.98-.45.7-.99 1.33-1.65 1.85-.65.51-1.41.85-2.22 1.08-.53.15-1.07.23-1.61.27-.51.04-1.02.07-1.54.08-1.3.03-2.6.04-3.91.02-1.31.02-2.61.01-3.91-.02-.52-.01-1.03-.04-1.54-.08-.54-.04-1.08-.12-1.61-.27-.81-.23-1.57-.57-2.22-1.08-.65-.52-1.2-1.15-1.65-1.85-.39-.59-.7-1.26-.9-1.98-.2-.73-.31-1.48-.36-2.25-.04-.6-.06-1.2-.07-1.8-.01-.62-.01-1.24-.01-1.87v-.03c.01-.62.01-1.24.02-1.86.04-.77.16-1.52.36-2.25.2-.72.51-1.39.9-1.98.45-.7.99-1.33-1.65-1.85.65-.51 1.41-.85 2.22-1.08.53-.15-1.07-.23-1.61-.27.51-.04-1.02-.07-1.54-.08 1.3-.03 2.6-.04 3.91-.02zM8.73 11.55v5.32c0 1.02.77 1.36 1.63.78l4.43-2.66c.85-.51.85-1.39 0-1.9l-4.43-2.66c-.86-.58-1.63-.24-1.63.78z"/></svg>
-                    </a>
-                </div>
-            </div>
-             <div class="mt-8 text-center text-gray-500 text-xs flex justify-center items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
-                <span>Site 100% Seguro</span>
-            </div>
-        </div>
-    </footer>
-
-
-    <script>
-        // Lógica do Menu Mobile
-        const mobileMenuButton = document.getElementById('mobile-menu-button');
-        const mobileMenu = document.getElementById('mobile-menu');
-
-        mobileMenuButton.addEventListener('click', () => {
-            mobileMenu.classList.toggle('hidden');
-        });
+          </div>
+        )}
         
-        // Lógica do FAQ (Acordeão)
-        const faqContainer = document.getElementById('faq-container');
-        faqContainer.addEventListener('click', (e) => {
-            const questionButton = e.target.closest('.question');
-            if (!questionButton) return;
+        {activeSection === 'planoAI' && (
+            <div className="p-8">
+                <div className="max-w-4xl mx-auto">
+                    <h2 className="text-3xl font-bold mb-2 text-yellow-400">Plano de Treino Personalizado com IA</h2>
+                    <p className="text-gray-300 mb-6">Receba um plano de treino semanal exclusivo, criado pela nossa IA com base nos seus dados de perfil.</p>
+                    <div className="bg-gray-900 p-6 rounded-2xl text-center">
+                        <button
+                            onClick={handleGeneratePlan}
+                            disabled={isGeneratingPlan}
+                            className="bg-yellow-400 text-black px-8 py-4 rounded-xl font-bold text-lg hover:bg-yellow-500 transition-all transform hover:scale-105 disabled:bg-gray-500 disabled:cursor-not-allowed flex items-center justify-center mx-auto"
+                        >
+                            <Sparkles className="w-5 h-5 mr-2" />
+                            {isGeneratingPlan ? 'Gerando seu plano...' : '✨ Gerar meu plano de treino'}
+                        </button>
+                        {isGeneratingPlan && <LoadingSpinner />}
+                        {generatedPlan && (
+                            <div className="mt-8 p-6 bg-black border border-gray-700 rounded-lg text-left whitespace-pre-wrap">
+                                <h3 className="text-2xl font-bold mb-4 text-yellow-400">Seu Plano Semanal:</h3>
+                                <p className="text-gray-200 leading-relaxed">{generatedPlan}</p>
+                                
+                                {/* Botões de Ação Pós-Geração */}
+                                <div className="mt-6 flex flex-col sm:flex-row justify-center gap-4">
+                                  <button
+                                    onClick={handleSendWhatsApp}
+                                    className="bg-green-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center justify-center space-x-2"
+                                  >
+                                    <MessageCircle className="w-5 h-5" />
+                                    <span>Enviar pelo WhatsApp</span>
+                                  </button>
+                                  <button
+                                    onClick={handleSavePDF}
+                                    className="bg-gray-700 text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-600 transition-colors flex items-center justify-center space-x-2"
+                                  >
+                                    <Download className="w-5 h-5" />
+                                    <span>Salvar como PDF</span>
+                                  </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        )}
+        
+        {activeSection === 'coachAI' && (
+             <div className="p-8 h-full flex flex-col">
+                <div className="max-w-4xl mx-auto w-full flex-grow flex flex-col">
+                    <h2 className="text-3xl font-bold mb-2 text-yellow-400">Coach AI</h2>
+                    <p className="text-gray-300 mb-6">Tem alguma dúvida sobre treino ou nutrição? Pergunte ao nosso Coach AI!</p>
+                    
+                    <div className="bg-gray-900 p-6 rounded-2xl flex-grow flex flex-col">
+                        <div className="flex-grow overflow-y-auto mb-4 space-y-4 pr-2">
+                            {coachMessages.map((msg, index) => (
+                                <div key={index} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                    <div className={`max-w-md p-3 rounded-lg ${msg.sender === 'user' ? 'bg-yellow-400 text-black' : 'bg-gray-800 text-white'}`}>
+                                        <p>{msg.text}</p>
+                                    </div>
+                                </div>
+                            ))}
+                             {isCoachReplying && (
+                                <div className="flex justify-start">
+                                    <div className="bg-gray-800 text-white p-3 rounded-lg">
+                                       <LoadingSpinner />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        <form onSubmit={handleSendMessage} className="flex items-center gap-4">
+                            <input
+                                type="text"
+                                value={userMessage}
+                                onChange={(e) => setUserMessage(e.target.value)}
+                                placeholder="Digite sua pergunta..."
+                                className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:border-yellow-400 focus:outline-none"
+                            />
+                            <button type="submit" className="bg-yellow-400 text-black p-3 rounded-lg hover:bg-yellow-500 transition-colors disabled:bg-gray-600" disabled={isCoachReplying}>
+                                <Send className="w-6 h-6"/>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        )}
 
-            const faqItem = questionButton.parentElement;
-            
-            // Fecha todos os outros itens abertos
-            const openItems = faqContainer.querySelectorAll('.faq-item.open');
-            openItems.forEach(item => {
-                if(item !== faqItem) {
-                    item.classList.remove('open');
-                }
-            });
-            
-            // Abre ou fecha o item clicado
-            faqItem.classList.toggle('open');
-        });
 
-    </script>
-</body>
-</html>
+        {(activeSection === 'abdomen' || activeSection === 'bumbum' || activeSection === 'massa' || activeSection === 'definicao') && (
+          <div className="p-8">
+            <div className="max-w-6xl mx-auto">
+              <h2 className="text-3xl font-bold mb-8 capitalize">
+                {activeSection === 'abdomen' && 'Treino para Abdômen'}
+                {activeSection === 'bumbum' && 'Treino Bumbum e Pernas'}
+                {activeSection === 'massa' && 'Ganho de Massa Muscular'}
+                {activeSection === 'definicao' && 'Treino para Definição'}
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {contentData[activeSection]?.map((content) => (<button key={content.id} onClick={() => setSelectedContent(content)} className="bg-gray-900 rounded-2xl overflow-hidden hover:bg-gray-800 transition-all group"><div className="relative"><img src={content.thumbnail} alt={content.title} className="w-full h-48 object-cover group-hover:scale-105 transition-transform" /><div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><Play className="w-12 h-12 text-yellow-400" /></div><div className="absolute top-4 right-4 bg-black/70 px-2 py-1 rounded text-sm">{content.duration}</div></div><div className="p-4 text-left"><h3 className="font-semibold mb-2">{content.title}</h3><p className="text-gray-400 text-sm line-clamp-2">{content.description}</p></div></button>))}
+              </div>
+            </div>
+          </div>
+        )}
 
+        {activeSection === 'suporte' && (
+          <div className="p-8">
+            <div className="max-w-4xl mx-auto">
+              <h2 className="text-3xl font-bold mb-8">Suporte</h2>
+              <div className="space-y-6">
+                <div className="bg-gray-900 p-6 rounded-2xl"><h3 className="text-xl font-semibold mb-4">Contato Direto</h3><p className="text-gray-300 mb-4">Precisa de ajuda? Entre em contato conosco pelo WhatsApp para suporte personalizado.</p><button onClick={openWhatsApp} className="bg-green-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center space-x-2"><MessageCircle className="w-5 h-5" /><span>Abrir WhatsApp</span></button></div>
+                <div className="bg-gray-900 p-6 rounded-2xl"><h3 className="text-xl font-semibold mb-4">Perguntas Frequentes</h3><div className="space-y-4"><div><h4 className="font-medium text-yellow-400 mb-2">Como acessar os treinos?</h4><p className="text-gray-300 text-sm">Use o menu lateral para navegar entre as categorias de treino. Clique em qualquer vídeo para assistir.</p></div><div><h4 className="font-medium text-yellow-400 mb-2">Posso baixar os PDFs?</h4><p className="text-gray-300 text-sm">Sim! Todos os materiais em PDF podem ser baixados para consulta offline.</p></div><div><h4 className="font-medium text-yellow-400 mb-2">Com que frequência devo treinar?</h4><p className="text-gray-300 text-sm">Recomendamos 3-4 treinos por semana, alternando entre as diferentes categorias.</p></div></div></div>
+              </div>
+            </div>
+          </div>
+        )}
 
-
-
-
-
-
-
+        {activeSection === 'configuracoes' && (
+          <div className="p-8">
+            <div className="max-w-4xl mx-auto">
+              <h2 className="text-3xl font-bold mb-8 text-yellow-400">Perfil</h2>
+              <form onSubmit={handleSaveProfile} className="space-y-6">
+                <div className="bg-gray-900 p-6 rounded-2xl">
+                  <h3 className="text-xl font-semibold mb-6 text-yellow-400">Perfil do Usuário</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div><label className="block text-sm font-medium mb-2 text-white">Nome</label><input type="text" value={profileData.nome} onChange={(e) => handleProfileChange('nome', e.target.value)} className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:border-yellow-400 focus:outline-none" placeholder="Seu nome completo" /></div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2 text-white">Telefone (com DDD)</label>
+                      <input 
+                        type="tel" 
+                        value={profileData.telefone} 
+                        onChange={(e) => handleProfileChange('telefone', e.target.value)} 
+                        className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:border-yellow-400 focus:outline-none" 
+                        placeholder="Ex: 11999998888" 
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div><label className="block text-sm font-medium mb-2 text-white">Idade</label><input type="number" value={profileData.idade} onChange={(e) => handleProfileChange('idade', e.target.value)} className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:border-yellow-400 focus:outline-none" placeholder="Sua idade" /></div>
+                    <div><label className="block text-sm font-medium mb-2 text-white">Sexo</label><select value={profileData.sexo} onChange={(e) => handleProfileChange('sexo', e.target.value)} className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:border-yellow-400 focus:outline-none"><option value="">Selecione</option><option value="masculino">Masculino</option><option value="feminino">Feminino</option><option value="outro">Outro</option></select></div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div><label className="block text-sm font-medium mb-2 text-white">Altura (cm)</label><input type="number" value={profileData.altura} onChange={(e) => handleProfileChange('altura', e.target.value)} className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:border-yellow-400 focus:outline-none" placeholder="Ex: 175" /></div>
+                    <div><label className="block text-sm font-medium mb-2 text-white">Peso (kg)</label><input type="number" value={profileData.peso} onChange={(e) => handleProfileChange('peso', e.target.value)} className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:border-yellow-400 focus:outline-none" placeholder="Ex: 70" /></div>
+                  </div>
+                </div>
+                <div className="text-center"><button type="submit" className="bg-yellow-400 text-black px-8 py-3 rounded-lg font-bold hover:bg-yellow-500 transition-colors">Salvar Alterações</button></div>
+              </form>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
